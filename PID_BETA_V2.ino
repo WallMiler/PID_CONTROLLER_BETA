@@ -255,10 +255,6 @@
   * dos botões conectados ao arduino
   */
   void configurar_setpoint(int totalTime_bnt1, int totalTime_btn2){
-    Serial.println(totalTime_btn1);
-    Serial.println(totalTime_btn2);
-    Serial.println("Dec-pos\t\t");
-    Serial.println(dec_pos);
 
     //Se o botão direito for pressionado por um tempo
     if (totalTime_btn1 >= 550) {
