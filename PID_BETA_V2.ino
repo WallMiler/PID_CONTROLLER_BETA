@@ -26,10 +26,10 @@ float cv, //  cv(n-1)
       setpoint;
 
 //variáveis dos parâmetros do PID
-float kp = 5;
-float ki = 2;
-float kd = 3.31;
-float ts = 0.01;
+float kp = 7;//5
+float ki = 5;//2
+float kd = 2.31;//3.31
+float ts = 0.01;//0.01
 
 unsigned long timeold; //armazena tempo decorrido desde a inicialização
 
@@ -56,14 +56,14 @@ pinMode(fwd, OUTPUT);//pino para ativar sentido horário
 pinMode(rev, OUTPUT);// pino para ativar sentido anti-horário
 pinMode(rele_led, OUTPUT); //saída para ativar relés da meia ponte h
 pinMode(bot, INPUT_PULLUP); //botão para ativar reversão
-Serial.begin(115200);
+Serial.begin(230400);
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
 void loop(){
 
   var_setpoint = analogRead(pot); //adquire setpoint variável pelo potenciometro
   relative_setpoint = mode(); //adquire novo valor de setpoint e inversão de rotação
-  setpoint = map(relative_setpoint, 0, 1023, 350, 900); //normalização do valor do setpoint, 325 foi a velocidade minima, 900 a máxima
+  setpoint = map(relative_setpoint, 0, 1023, 350, 850); //normalização do valor do setpoint, 325 foi a velocidade minima, 900 a máxima
   
 
   mode(); //chama a função para inveter o sentido de giro e alterar a velocidade
@@ -82,6 +82,7 @@ void loop(){
 //se o PID for menor que zero, normaliza o pwm para aumentar a velocidade, valores adquiridos empiricamente
   if(cv > setpoint){
     cv = setpoint;
+    //ki = 0;
   }
   //senão normaliza o pwm para a diminuição da velocidade, valores também adquiridos empiricamente
   if(cv < 131) {
@@ -89,33 +90,36 @@ void loop(){
   
   }
 
+  //Implementação de um anti-windup, se o pwm saturar em >254 e o erro for maior que 0 a constante kp é zerada
+  // caso não a constante recebe o valor padrão
+  if((pwm > 254) && (erro > 0)) ki = 0; 
+  if(pwm < 254) ki = 5;
   if(speed < 340) cv = setpoint; //Se a velocidade for menor que o valor mínimo, cv será = setpoint
 
   pwm = map(cv, 0,setpoint, 106, 255);
-  //analogWrite(fwd, cv*(255.0/800.0));//ativa o pwm para o pino designado
-  //analogWrite(fwd, pwm);//ativa o pwm para o pino designado
   
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
 // Algoritmo de plotagem do gráfico serial e monitor serial
-  if(millis() - timeold >= 10){
+  if(millis() - timeold >= 50){
   timeold = millis(); 
-  Serial.print("Var_setpoint ");
+  Serial.print("setpoint ");
   Serial.print(setpoint);  
   Serial.print("  ");
   Serial.print("speed ");
   Serial.print(speed);
   Serial.print("  ");
-  // Serial.println("erro");
-  // Serial.print(erro);
-  // Serial.print("  ");
-  //Serial.print("proporcional ");
-  //Serial.print(proporcional);
-  //Serial.print("  ");
+  Serial.print("erro");
+  Serial.print(erro);
+  Serial.print("  ");
+  Serial.print("  ");
   Serial.print("pwm ");
   Serial.print(pwm);
   Serial.print("  ");
   Serial.print("cv ");
-  Serial.println(cv);
+  Serial.print(cv);
+  Serial.print("  ");
+  Serial.print("ki");
+  Serial.println(ki);
 
   }
 }
@@ -160,8 +164,6 @@ int mode(){
   if(rele_state == LOW){ 
       //setpoint_mode = 500;
       digitalWrite(rele, LOW);
-      //digitalWrite(rev_led, LOW);
-      //digitalWrite(fwd_led, HIGH);
       analogWrite(fwd, pwm);
       analogWrite(rev, 0);
       digitalWrite(rele_led, LOW);
